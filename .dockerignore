@@ -1,0 +1,34 @@
+# Node modules directory (to prevent including local node_modules in the image)
+node_modules/
+
+# Logs
+*.log
+
+# Environment files (if you're using .env files, you likely don't want them in the image)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Dockerfile and .dockerignore itself (in case you don't want them in the image)
+Dockerfile
+.dockerignore
+
+# Build or temporary directories
+dist/
+build/
+tmp/
+
+# IDE/editor-specific files
+.idea/
+.vscode/
+
+# OS-specific files (macOS, Windows, etc.)
+.DS_Store
+Thumbs.db
+
+# npm debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
