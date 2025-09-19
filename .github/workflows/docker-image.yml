@@ -23,7 +23,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKERUSERNAME }}/frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/frontend:latest
             ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}
 
 # Update Image Tag in Kubernetes Manifests Job
