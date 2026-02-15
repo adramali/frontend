@@ -19,6 +19,9 @@ const LoginSignup = () => {
   const backendBase = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
   const buildUrl = (path) => (backendBase ? `${backendBase}${path}` : path);
 
+  // Prefer explicit backend URL; fallback keeps local dev working.
+  const backendBase = (process.env.REACT_APP_BACKEND_URL || 'http://backend-svc:5000').replace(/\/$/, '');
+
   const handleButtonClick = (newAction) => {
     setError('');
     setMessage('');
