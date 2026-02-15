@@ -15,6 +15,9 @@ const LoginSignup = () => {
   const [signupMessage, setSignupMessage] = useState('');
   const [signupError, setSignupError] = useState('');
 
+  // Prefer explicit backend URL; fallback keeps local dev working.
+  const backendBase = (process.env.REACT_APP_BACKEND_URL || 'http://backend-svc:5000').replace(/\/$/, '');
+
   const handleButtonClick = (newAction) => {
     setAction(newAction);
     setSignupMessage('');  // Clear message when switching actions
@@ -39,9 +42,8 @@ const LoginSignup = () => {
       return;
     }
 
-    // build backend URL (fallback to relative path)
-    const backendBase = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
-    const url = backendBase ? `${backendBase}/signup` : '/signup';
+    const endpoint = action === 'Login' ? '/login' : '/signup';
+    const url = `${backendBase}${endpoint}`;
 
     try {
       const response = await fetch(url, {
@@ -56,16 +58,16 @@ const LoginSignup = () => {
       if (!response.ok) {
         console.error('Signup failed', response.status, body);
         setSignupMessage('');
-        setSignupError(body.message || 'Signup failed. Please try again.');
+        setSignupError(body.message || `${action} failed. Please try again.`);
         return;
       }
 
-      setSignupMessage(body.message || 'Signup successful');
+      setSignupMessage(body.message || `${action} successful`);
       setSignupError('');
     } catch (error) {
-      console.error('Network / fetch error during signup:', error);
+      console.error('Network / fetch error:', { url, error });
       setSignupMessage('');
-      setSignupError('An error occurred while submitting the form. Please try again later.');
+      setSignupError(`Network error: unable to reach backend at ${backendBase}. Check REACT_APP_BACKEND_URL, CORS, and backend logs.`);
     }
   };
 
