@@ -1,23 +1,54 @@
 name: ci
 on:
   push:
-    branches:
-      - "main"
+    branches: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
 jobs:
-  build:
+# -------------------------
+# SONAR SCAN FOR PR
+# -------------------------
+  sonar-pr:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     steps:
-      - 
-        name: Login to Docker Hub
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # IMPORTANT for Sonar PR analysis
+      - name: SonarQube PR Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+
+# -------------------------
+# BUILD & PUSH (MAIN ONLY)
+# -------------------------
+  build:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - 
-        name: Set up Docker Buildx
+
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - 
-        name: Build and push
+
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
@@ -26,24 +57,42 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/frontend:latest
             ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}
 
-# Update Image Tag in Kubernetes Manifests Job
-  update-image:
+# -------------------------
+# SONAR FULL SCAN (MAIN)
+# -------------------------
+  sonar-main:
     runs-on: ubuntu-latest
-    needs: build  # This ensures this job runs only after the 'build' job succeeds
-
+    needs: build
     steps:
-      - name: Checkout Repo 1 (Kubernetes Manifests Repo)
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Full Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+# -------------------------
+# UPDATE K8S MANIFESTS
+# -------------------------
+  update-image:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo (K8s manifests)
         uses: actions/checkout@v3
         with:
           repository: adramali/k8s-manifestfiles
-          ref: main  # Replace wth the owner/repo name of Repo 1
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}  # Use a GitHub token for access
+          ref: main
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
 
-      - name: Update Image Tag in deployment.yaml
+      - name: Update Image Tag
         run: |
           sed -i "s|adramalli/frontend:[^ ]*|${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_number }}|" frontend/deployment.yaml
 
-      - name: Commit and Push changes to Repo 1
+      - name: Commit and Push
         run: |
           git config user.name "Adra Mallikarjuna"
           git config user.email "adramallikarjuna@gmail.com"
