@@ -15,8 +15,11 @@ const LoginSignup = () => {
   const [signupMessage, setSignupMessage] = useState('');
   const [signupError, setSignupError] = useState('');
 
-  // Prefer explicit backend URL; fallback keeps local dev working.
-  const backendBase = (process.env.REACT_APP_BACKEND_URL || 'http://backend-svc:5000').replace(/\/$/, '');
+  // Use explicit backend URL when provided; otherwise derive from current browser host.
+  // `backend-svc` works only inside the cluster network, not from end-user browsers.
+  const configuredBackend = (process.env.REACT_APP_BACKEND_URL || '').trim();
+  const defaultBackend = `${window.location.protocol}//${window.location.hostname}:5000`;
+  const backendBase = (configuredBackend || defaultBackend).replace(/\/$/, '');
 
   const handleButtonClick = (newAction) => {
     setAction(newAction);
@@ -56,7 +59,7 @@ const LoginSignup = () => {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        console.error('Signup failed', response.status, body);
+        console.error(`${action} failed`, { url, status: response.status, body });
         setSignupMessage('');
         setSignupError(body.message || `${action} failed. Please try again.`);
         return;
@@ -65,9 +68,10 @@ const LoginSignup = () => {
       setSignupMessage(body.message || `${action} successful`);
       setSignupError('');
     } catch (error) {
-      console.error('Network / fetch error:', { url, error });
+      const errorMessage = error?.message || 'Unknown network error';
+      console.error('Network / fetch error:', { action, url, backendBase, error: errorMessage });
       setSignupMessage('');
-      setSignupError(`Network error: unable to reach backend at ${backendBase}. Check REACT_APP_BACKEND_URL, CORS, and backend logs.`);
+      setSignupError(`Network error: unable to reach ${url} (${errorMessage}). Check REACT_APP_BACKEND_URL, CORS, and backend logs.`);
     }
   };
 
