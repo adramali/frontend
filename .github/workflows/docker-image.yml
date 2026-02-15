@@ -2,19 +2,17 @@ name: ci
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, 'feature/**' ]
   pull_request:
-    branches:
-      - main
-      - 'feature/**'
+    branches: [ main ]
+  workflow_dispatch: {}
 
 jobs:
 # -------------------------
 # SONAR SCAN FOR PR
 # -------------------------
   sonar-pr:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +37,7 @@ jobs:
 # BUILD & PUSH (MAIN ONLY)
 # -------------------------
   build:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -68,7 +66,6 @@ jobs:
 # SONAR FULL SCAN (MAIN)
 # -------------------------
   sonar-main:
-    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -91,8 +88,8 @@ jobs:
 # UPDATE K8S MANIFESTS
 # -------------------------
   update-image:
+    needs: build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repo (K8s manifests)
         uses: actions/checkout@v3
