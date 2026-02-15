@@ -135,5 +135,34 @@
     content: '✅';  /* Success icon */
     margin-right: 10px;
   }
-  
-  
+
+  .switch{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 160px;
+    height: 59px;
+    background: transparent;
+    color: #4c004c;
+    border: 3px solid #4c004c;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    box-shadow: none; /* avoid default focus ring visuals */
+  }
+
+  .switch:hover{
+    background: rgba(76,0,76,0.06);
+  }
+
+  .switch:active{
+    transform: translateY(1px);
+  }
+
+  /* keep focus accessible but subtler */
+  .switch:focus{
+    box-shadow: 0 0 0 4px rgba(76,0,76,0.12);
+  }
