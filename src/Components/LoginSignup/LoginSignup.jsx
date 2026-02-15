@@ -16,8 +16,11 @@ const LoginSignup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const backendBase = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
-  const buildUrl = (path) => (backendBase ? `${backendBase}${path}` : path);
+  // Use explicit backend URL when provided; otherwise derive from current browser host.
+  // `backend-svc` works only inside the cluster network, not from end-user browsers.
+  const configuredBackend = (process.env.REACT_APP_BACKEND_URL || '').trim();
+  const defaultBackend = `${window.location.protocol}//${window.location.hostname}:5000`;
+  const backendBase = (configuredBackend || defaultBackend).replace(/\/$/, '');
 
   const handleButtonClick = (newAction) => {
     setError('');
@@ -71,17 +74,23 @@ const LoginSignup = () => {
         body: JSON.stringify(payload),
       });
 
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(body.message || `Server returned ${res.status}`);
-      } else {
-        setMessage(body.message || (action === 'Sign Up' ? 'Signup successful' : 'Login successful'));
+      // read response body for better error messages
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        console.error(`${action} failed`, { url, status: response.status, body });
+        setSignupMessage('');
+        setSignupError(body.message || `${action} failed. Please try again.`);
+        return;
       }
-    } catch (err) {
-      console.error('Network error:', err);
-      setError('Network error. Check backend URL / CORS and server logs.');
-    } finally {
-      setLoading(false);
+
+      setSignupMessage(body.message || `${action} successful`);
+      setSignupError('');
+    } catch (error) {
+      const errorMessage = error?.message || 'Unknown network error';
+      console.error('Network / fetch error:', { action, url, backendBase, error: errorMessage });
+      setSignupMessage('');
+      setSignupError(`Network error: unable to reach ${url} (${errorMessage}). Check REACT_APP_BACKEND_URL, CORS, and backend logs.`);
     }
   };
 
