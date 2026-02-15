@@ -3,17 +3,18 @@ import './LoginSignup.css';
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaBirthdayCake } from 'react-icons/fa';
 
 const LoginSignup = () => {
-  const [action, setAction] = useState("Login");
+  const [action, setAction] = useState('Login'); // "Login" or "Sign Up"
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     phone_number: '',
     dob: '',
     password: '',
-    confirmPassword: '', // Add confirmPassword field
+    confirmPassword: '',
   });
-  const [signupMessage, setSignupMessage] = useState('');
-  const [signupError, setSignupError] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Use explicit backend URL when provided; otherwise derive from current browser host.
   // `backend-svc` works only inside the cluster network, not from end-user browsers.
@@ -22,37 +23,55 @@ const LoginSignup = () => {
   const backendBase = (configuredBackend || defaultBackend).replace(/\/$/, '');
 
   const handleButtonClick = (newAction) => {
+    setError('');
+    setMessage('');
     setAction(newAction);
-    setSignupMessage('');  // Clear message when switching actions
-    setSignupError('');
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setMessage('');
 
-    // Check if passwords match for signup
-    if (action === "Sign Up" && formData.password !== formData.confirmPassword) {
-      setSignupError('Passwords do not match!');
-      setSignupMessage('');
-      return;
+    // Basic validation
+    if (action === 'Sign Up') {
+      if (!formData.full_name || !formData.email || !formData.password || !formData.confirmPassword) {
+        setError('Please fill all required fields.');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
+    } else {
+      if (!formData.email || !formData.password) {
+        setError('Email and password are required.');
+        return;
+      }
     }
 
-    const endpoint = action === 'Login' ? '/login' : '/signup';
-    const url = `${backendBase}${endpoint}`;
+    const url = action === 'Sign Up' ? buildUrl('/signup') : buildUrl('/login');
+    const payload = action === 'Sign Up'
+      ? {
+          full_name: formData.full_name,
+          email: formData.email,
+          phone_number: formData.phone_number,
+          dob: formData.dob,
+          password: formData.password,
+        }
+      : { email: formData.email, password: formData.password };
 
+    setLoading(true);
     try {
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       // read response body for better error messages
@@ -175,34 +194,21 @@ const LoginSignup = () => {
         <div className='submit-container'>
           <button
             type='button'
-            className={action === "Sign Up" ? "submit gray" : "submit"}
-            onClick={() => handleButtonClick("Sign Up")}
+            className='switch'
+            onClick={() => handleButtonClick(action === 'Login' ? 'Sign Up' : 'Login')}
           >
-            Sign Up
-          </button>
-
-          <button
-            type='button'
-            className={action === "Login" ? "submit gray" : "submit"}
-            onClick={() => handleButtonClick("Login")}
-          >
-            Login
+            {action === 'Login' ? 'Switch to Sign Up' : 'Switch to Login'}
           </button>
 
           {/* explicit submit */}
-          <button type='submit' className='submit primary'>
-            {action}
+          <button type='submit' className='submit primary' disabled={loading}>
+            {loading ? 'Submitting…' : action}
           </button>
         </div>
       </form>
 
-      {signupMessage && (
-        <div className="signup-message success">{signupMessage}</div>
-      )}
-
-      {signupError && (
-        <div className="signup-message error">{signupError}</div>
-      )}
+      {error && <div className="error" style={{ color: 'crimson', marginTop: 12 }}>{error}</div>}
+      {message && <div className="message" style={{ color: 'green', marginTop: 12 }}>{message}</div>}
     </div>
   );
 };
