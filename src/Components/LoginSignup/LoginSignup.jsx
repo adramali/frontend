@@ -21,6 +21,7 @@ const LoginSignup = () => {
   const configuredBackend = (process.env.REACT_APP_BACKEND_URL || '').trim();
   const defaultBackend = `${window.location.protocol}//${window.location.hostname}:5000`;
   const backendBase = (configuredBackend || defaultBackend).replace(/\/$/, '');
+  const buildUrl = (endpoint) => `${backendBase}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   const handleButtonClick = (newAction) => {
     setError('');
