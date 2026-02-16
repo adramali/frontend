@@ -3,7 +3,7 @@ import './LoginSignup.css';
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaBirthdayCake } from 'react-icons/fa';
 
 const LoginSignup = () => {
-  const [action, setAction] = useState('Login'); // "Login" or "Sign Up"
+  const [action, setAction] = useState('Login'); // Login | Sign Up
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -12,21 +12,22 @@ const LoginSignup = () => {
     password: '',
     confirmPassword: '',
   });
+
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Use explicit backend URL when provided; otherwise derive from current browser host.
-  // `backend-svc` works only inside the cluster network, not from end-user browsers.
+  // Backend URL handling
   const configuredBackend = (process.env.REACT_APP_BACKEND_URL || '').trim();
   const defaultBackend = `${window.location.protocol}//${window.location.hostname}:5000`;
   const backendBase = (configuredBackend || defaultBackend).replace(/\/$/, '');
-  const buildUrl = (endpoint) => `${backendBase}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const buildUrl = (endpoint) =>
+    `${backendBase}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   const handleButtonClick = (newAction) => {
+    setAction(newAction);
     setError('');
     setMessage('');
-    setAction(newAction);
   };
 
   const handleChange = (e) => {
@@ -39,12 +40,18 @@ const LoginSignup = () => {
     setError('');
     setMessage('');
 
-    // Basic validation
+    // Validation
     if (action === 'Sign Up') {
-      if (!formData.full_name || !formData.email || !formData.password || !formData.confirmPassword) {
+      if (
+        !formData.full_name ||
+        !formData.email ||
+        !formData.password ||
+        !formData.confirmPassword
+      ) {
         setError('Please fill all required fields.');
         return;
       }
+
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match.');
         return;
@@ -56,18 +63,25 @@ const LoginSignup = () => {
       }
     }
 
-    const url = action === 'Sign Up' ? buildUrl('/signup') : buildUrl('/login');
-    const payload = action === 'Sign Up'
-      ? {
-          full_name: formData.full_name,
-          email: formData.email,
-          phone_number: formData.phone_number,
-          dob: formData.dob,
-          password: formData.password,
-        }
-      : { email: formData.email, password: formData.password };
+    const url =
+      action === 'Sign Up' ? buildUrl('/signup') : buildUrl('/login');
+
+    const payload =
+      action === 'Sign Up'
+        ? {
+            full_name: formData.full_name,
+            email: formData.email,
+            phone_number: formData.phone_number,
+            dob: formData.dob,
+            password: formData.password,
+          }
+        : {
+            email: formData.email,
+            password: formData.password,
+          };
 
     setLoading(true);
+
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -75,42 +89,47 @@ const LoginSignup = () => {
         body: JSON.stringify(payload),
       });
 
-      // read response body for better error messages
-      const body = await response.json().catch(() => ({}));
+      const body = await res.json().catch(() => ({}));
 
-      if (!response.ok) {
-        console.error(`${action} failed`, { url, status: response.status, body });
-        setSignupMessage('');
-        setSignupError(body.message || `${action} failed. Please try again.`);
+      if (!res.ok) {
+        console.error(`${action} failed`, {
+          url,
+          status: res.status,
+          body,
+        });
+        setMessage('');
+        setError(body.message || `${action} failed. Please try again.`);
         return;
       }
 
-      setSignupMessage(body.message || `${action} successful`);
-      setSignupError('');
-    } catch (error) {
-      const errorMessage = error?.message || 'Unknown network error';
-      console.error('Network / fetch error:', { action, url, backendBase, error: errorMessage });
-      setSignupMessage('');
-      setSignupError(`Network error: unable to reach ${url} (${errorMessage}). Check REACT_APP_BACKEND_URL, CORS, and backend logs.`);
+      setMessage(body.message || `${action} successful`);
+      setError('');
+    } catch (err) {
+      const errorMessage = err?.message || 'Unknown network error';
+      console.error('Network error:', errorMessage);
+      setMessage('');
+      setError(`Network error: unable to reach backend.`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className='container'>
-      <div className='header'>
-        <div className='text'>{action}</div>
-        <div className='underline'></div>
+    <div className="container">
+      <div className="header">
+        <div className="text">{action}</div>
+        <div className="underline"></div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className='inputs'>
-          {action === "Sign Up" && (
-            <div className='input'>
-              <FaUser className='icon' />
+        <div className="inputs">
+          {action === 'Sign Up' && (
+            <div className="input">
+              <FaUser className="icon" />
               <input
-                type='text'
-                name='full_name'
-                placeholder='Full Name'
+                type="text"
+                name="full_name"
+                placeholder="Full Name"
                 value={formData.full_name}
                 onChange={handleChange}
                 required
@@ -118,25 +137,25 @@ const LoginSignup = () => {
             </div>
           )}
 
-          <div className='input'>
-            <FaEnvelope className='icon' />
+          <div className="input">
+            <FaEnvelope className="icon" />
             <input
-              type='email'
-              name='email'
-              placeholder='Email ID'
+              type="email"
+              name="email"
+              placeholder="Email ID"
               value={formData.email}
               onChange={handleChange}
               required
             />
           </div>
 
-          {action === "Sign Up" && (
-            <div className='input'>
-              <FaPhone className='icon' />
+          {action === 'Sign Up' && (
+            <div className="input">
+              <FaPhone className="icon" />
               <input
-                type='tel'
-                name='phone_number'
-                placeholder='Phone Number'
+                type="tel"
+                name="phone_number"
+                placeholder="Phone Number"
                 value={formData.phone_number}
                 onChange={handleChange}
                 required
@@ -144,13 +163,12 @@ const LoginSignup = () => {
             </div>
           )}
 
-          {action === "Sign Up" && (
-            <div className='input'>
-              <FaBirthdayCake className='icon' />
+          {action === 'Sign Up' && (
+            <div className="input">
+              <FaBirthdayCake className="icon" />
               <input
-                type='date'
-                name='dob'
-                placeholder='Date of Birth'
+                type="date"
+                name="dob"
                 value={formData.dob}
                 onChange={handleChange}
                 required
@@ -158,26 +176,25 @@ const LoginSignup = () => {
             </div>
           )}
 
-          <div className='input'>
-            <FaLock className='icon' />
+          <div className="input">
+            <FaLock className="icon" />
             <input
-              type='password'
-              name='password'
-              placeholder='Password'
+              type="password"
+              name="password"
+              placeholder="Password"
               value={formData.password}
               onChange={handleChange}
               required
             />
           </div>
 
-          {/* Add Confirm Password field */}
-          {action === "Sign Up" && (
-            <div className='input'>
-              <FaLock className='icon' />
+          {action === 'Sign Up' && (
+            <div className="input">
+              <FaLock className="icon" />
               <input
-                type='password'
-                name='confirmPassword'
-                placeholder='Confirm Password'
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
@@ -186,30 +203,39 @@ const LoginSignup = () => {
           )}
         </div>
 
-        {action === "Sign Up" ? null : (
+        {action === 'Login' && (
           <div className="forgot-password">
             Lost Password? <span>Click Here!</span>
           </div>
         )}
 
-        <div className='submit-container'>
+        <div className="submit-container">
           <button
-            type='button'
-            className='switch'
-            onClick={() => handleButtonClick(action === 'Login' ? 'Sign Up' : 'Login')}
+            type="button"
+            className="switch"
+            onClick={() =>
+              handleButtonClick(action === 'Login' ? 'Sign Up' : 'Login')
+            }
           >
             {action === 'Login' ? 'Switch to Sign Up' : 'Switch to Login'}
           </button>
 
-          {/* explicit submit */}
-          <button type='submit' className='submit primary' disabled={loading}>
+          <button type="submit" className="submit primary" disabled={loading}>
             {loading ? 'Submitting…' : action}
           </button>
         </div>
       </form>
 
-      {error && <div className="error" style={{ color: 'crimson', marginTop: 12 }}>{error}</div>}
-      {message && <div className="message" style={{ color: 'green', marginTop: 12 }}>{message}</div>}
+      {error && (
+        <div className="error" style={{ color: 'crimson', marginTop: 12 }}>
+          {error}
+        </div>
+      )}
+      {message && (
+        <div className="message" style={{ color: 'green', marginTop: 12 }}>
+          {message}
+        </div>
+      )}
     </div>
   );
 };
